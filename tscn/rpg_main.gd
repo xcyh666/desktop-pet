@@ -161,9 +161,11 @@ func _refresh_skill_buttons() -> void:
 		return
 	var skills: Array = active_unit["skills"]
 	for i in min(4, skills.size()):
-		var skill: Dictionary = skills[i]
-		skill_buttons[i].text = skill["name"]
-		skill_buttons[i].disabled = false
+		var skill_data = skills[i]
+		if skill_data is Dictionary:
+			var skill: Dictionary = skill_data
+			skill_buttons[i].text = str(skill.get("name", "技能"))
+			skill_buttons[i].disabled = false
 	battle_hint.text = "请选择技能，再点目标（敌方/我方）"
 
 func _on_roster_selected(index: int) -> void:
@@ -306,6 +308,8 @@ func _on_skill_pressed(index: int) -> void:
 		return
 	var skills: Array = active_unit["skills"]
 	if index >= skills.size():
+		return
+	if not (skills[index] is Dictionary):
 		return
 	selected_skill = skills[index]
 	battle_hint.text = "已选择 %s，请点%s目标。" % [selected_skill["name"], "敌方" if selected_skill["target"] == "enemy" else "我方"]

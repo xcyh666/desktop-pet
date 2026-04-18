@@ -33,12 +33,12 @@ const BASIC_ATTACK := {"name": "普通攻击", "power": 15, "target": "enemy", "
 @onready var roster_list: ItemList = $Root/Margin/VBox/Body/FormationPanel/RosterList
 @onready var hero_info: RichTextLabel = $Root/Margin/VBox/Body/FormationPanel/HeroInfo
 @onready var formation_info: Label = $Root/Margin/VBox/Body/FormationPanel/FormationInfo
-@onready var battle_button: Button = $Root/Margin/VBox/Body/FormationPanel/StartBattleButton
-@onready var reset_button: Button = $Root/Margin/VBox/Body/FormationPanel/ResetFormationButton
+@onready var battle_button: Button = $Root/Margin/VBox/Body/FormationPanel/FormationButtons/StartBattleButton
+@onready var reset_button: Button = $Root/Margin/VBox/Body/FormationPanel/FormationButtons/ResetFormationButton
 @onready var grid: GridContainer = $Root/Margin/VBox/Body/FormationPanel/FormationGrid
 
-@onready var ally_list: ItemList = $Root/Margin/VBox/Body/BattlePanel/AllyList
-@onready var enemy_list: ItemList = $Root/Margin/VBox/Body/BattlePanel/EnemyList
+@onready var ally_list: ItemList = $Root/Margin/VBox/Body/BattlePanel/Lists/AllyList
+@onready var enemy_list: ItemList = $Root/Margin/VBox/Body/BattlePanel/Lists/EnemyList
 @onready var skill_buttons: Array[Button] = [$Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill1, $Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill2, $Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill3, $Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill4]
 @onready var battle_log: RichTextLabel = $Root/Margin/VBox/Body/BattlePanel/BattleLog
 @onready var battle_hint: Label = $Root/Margin/VBox/Body/BattlePanel/BattleHint
@@ -46,7 +46,7 @@ const BASIC_ATTACK := {"name": "普通攻击", "power": 15, "target": "enemy", "
 
 var heroes: Array[Dictionary] = []
 var formation_slots: Array = []
-var floor: int = 1
+var tower_floor: int = 1
 var pending_boss_reform := false
 
 var battle_active := false
@@ -129,7 +129,7 @@ func _refresh_all_ui() -> void:
 	_refresh_skill_buttons()
 
 func _refresh_stage_mode() -> void:
-	stage_label.text = "层数: %d%s" % [floor, " (Boss)" if floor % 5 == 0 else ""]
+	stage_label.text = "层数: %d%s" % [tower_floor, " (Boss)" if tower_floor % 5 == 0 else ""]
 	mode_label.text = "阶段: %s" % ("战斗中" if battle_active else "编队中")
 	formation_info.text = "已上阵: %d / %d（3x3站位）" % [_deployed_count(), MAX_DEPLOY]
 
@@ -227,18 +227,18 @@ func _start_battle() -> void:
 	for hero in formation_slots:
 		if hero != null:
 			allies.append(_clone_for_battle(hero, true))
-	enemies = _generate_floor_enemies(floor)
+	enemies = _generate_floor_enemies(tower_floor)
 	battle_active = true
 	turn_queue.clear()
 	active_unit.clear()
 	selected_skill.clear()
-	battle_log.append_text("\n========== 进入第%d层 ==========" % floor)
+	battle_log.append_text("\n========== 进入第%d层 ==========" % tower_floor)
 	_refresh_all_ui()
 	_next_turn()
 
 func _generate_floor_enemies(current_floor: int) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	var count: int = 2 + min(2, int(current_floor / 3))
+	var count: int = 2 + min(2, int(current_floor / 3.0))
 	if current_floor % 5 == 0:
 		count = 1
 	for i in count:
@@ -246,13 +246,13 @@ func _generate_floor_enemies(current_floor: int) -> Array[Dictionary]:
 		var talent: String = TALENTS[(current_floor + i * 2) % TALENTS.size()]
 		var unit := _create_hero(9000 + current_floor * 10 + i, profession, talent)
 		unit["name"] = "敌-%s-%s" % [profession, talent]
-		var scale := 1.0 + current_floor * 0.14
+		var enemy_scale: float = 1.0 + current_floor * 0.14
 		if current_floor % 5 == 0:
-			scale += 0.8
+			enemy_scale += 0.8
 			unit["name"] = "Boss-%s-%s" % [profession, talent]
-		unit["max_hp"] = int(unit["max_hp"] * scale)
+		unit["max_hp"] = int(unit["max_hp"] * enemy_scale)
 		unit["hp"] = unit["max_hp"]
-		unit["atk"] = int(unit["atk"] * scale)
+		unit["atk"] = int(unit["atk"] * enemy_scale)
 		unit["def"] = int(unit["def"] * (0.9 + current_floor * 0.05))
 		unit["spd"] = int(unit["spd"] * (0.95 + current_floor * 0.03))
 		result.append(_clone_for_battle(unit, false))
@@ -423,11 +423,11 @@ func _check_battle_end() -> bool:
 		return true
 	if enemies.is_empty():
 		battle_active = false
-		var reward := 30 + floor * 10
+		var reward := 30 + tower_floor * 10
 		_apply_rewards(reward)
-		battle_log.append_text("\n[胜利] 通关第%d层，获得全队经验 %d。" % [floor, reward])
-		floor += 1
-		if floor % 5 == 0:
+		battle_log.append_text("\n[胜利] 通关第%d层，获得全队经验 %d。" % [tower_floor, reward])
+		tower_floor += 1
+		if tower_floor % 5 == 0:
 			pending_boss_reform = true
 			_restore_team_status()
 			battle_log.append_text("\n[爬塔] 即将进入Boss层，允许重新编辑阵容，且角色状态已回满。")

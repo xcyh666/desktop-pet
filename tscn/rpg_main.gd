@@ -238,7 +238,7 @@ func _start_battle() -> void:
 
 func _generate_floor_enemies(current_floor: int) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	var count := 2 + min(2, int(current_floor / 3))
+	var count: int = 2 + min(2, int(current_floor / 3))
 	if current_floor % 5 == 0:
 		count = 1
 	for i in count:
@@ -384,8 +384,8 @@ func _execute_skill(caster: Dictionary, target: Dictionary, skill: Dictionary) -
 		target["status"].clear()
 
 func _calc_damage(caster: Dictionary, target: Dictionary, skill: Dictionary) -> int:
-	var attack := caster["atk"] * (1.0 + caster["buff_attack"])
-	var defense := target["def"] * (1.0 + target["buff_defense"])
+	var attack: float = float(caster["atk"]) * (1.0 + float(caster["buff_attack"]))
+	var defense: float = float(target["def"]) * (1.0 + float(target["buff_defense"]))
 	var damage := int(max(1.0, float(skill["power"]) + attack - defense * 0.7))
 	if TALENT_COUNTER[caster["talent"]] == target["talent"]:
 		damage = int(damage * 1.35)
@@ -397,7 +397,7 @@ func _apply_status_damage() -> void:
 		for unit in group:
 			if unit["hp"] <= 0:
 				continue
-			var status_keys := unit["status"].keys()
+			var status_keys: Array = unit["status"].keys()
 			for status in status_keys:
 				if status == "灼烧":
 					unit["hp"] = max(0, unit["hp"] - int(unit["max_hp"] * 0.08))

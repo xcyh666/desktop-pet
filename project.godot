@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-run/main_scene="res://tscn/node_3d.tscn"
+run/main_scene="res://tscn/game_main.tscn"
 config/name="desktopPet"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -27,8 +27,7 @@ renderer/rendering_method.mobile="gl_compatibility"
 
 [display]
 
-window/size/viewport_width=360
-window/size/viewport_height=520
-window/per_pixel_transparency/allowed=true
-window/per_pixel_transparency/enabled=true
-window/handheld/orientation=0
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/resizable=true
+window/stretch/mode="canvas_items"

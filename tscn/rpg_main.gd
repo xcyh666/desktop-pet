@@ -42,6 +42,8 @@ const BASIC_ATTACK := {"name": "普通攻击", "power": 15, "target": "enemy", "
 @onready var skill_buttons: Array[Button] = [$Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill1, $Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill2, $Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill3, $Root/Margin/VBox/Body/BattlePanel/SkillRow/Skill4]
 @onready var battle_log: RichTextLabel = $Root/Margin/VBox/Body/BattlePanel/BattleLog
 @onready var battle_hint: Label = $Root/Margin/VBox/Body/BattlePanel/BattleHint
+@onready var turn_order_label: Label = $Root/Margin/VBox/Body/BattlePanel/TurnOrderLabel
+@onready var skill_tooltip: RichTextLabel = $Root/Margin/VBox/Body/BattlePanel/SkillTooltip
 @onready var next_turn_button: Button = $Root/Margin/VBox/Body/BattlePanel/NextTurnButton
 
 var heroes: Array[Dictionary] = []
@@ -120,6 +122,8 @@ func _connect_ui() -> void:
 	next_turn_button.pressed.connect(_force_next_turn)
 	for i in skill_buttons.size():
 		skill_buttons[i].pressed.connect(_on_skill_pressed.bind(i))
+		skill_buttons[i].mouse_entered.connect(_on_skill_hovered.bind(i))
+		skill_buttons[i].mouse_exited.connect(_on_skill_unhovered)
 
 func _refresh_all_ui() -> void:
 	_refresh_stage_mode()
@@ -151,6 +155,8 @@ func _refresh_battle_lists() -> void:
 		ally_list.add_item(_battle_unit_text(unit))
 	for unit in enemies:
 		enemy_list.add_item(_battle_unit_text(unit))
+	_highlight_active_unit()
+	_update_turn_order_display()
 
 func _refresh_skill_buttons() -> void:
 	for btn in skill_buttons:
@@ -158,6 +164,7 @@ func _refresh_skill_buttons() -> void:
 		btn.text = "技能"
 	if active_unit.is_empty() or not bool(active_unit.get("is_player", false)):
 		battle_hint.text = "等待玩家回合..."
+		skill_tooltip.text = "鼠标悬停技能按钮，可查看详细说明。"
 		return
 	var skills: Array = active_unit["skills"]
 	for i in min(4, skills.size()):
@@ -167,6 +174,17 @@ func _refresh_skill_buttons() -> void:
 			skill_buttons[i].text = str(skill.get("name", "技能"))
 			skill_buttons[i].disabled = false
 	battle_hint.text = "请选择技能，再点目标（敌方/我方）"
+
+func _on_skill_hovered(index: int) -> void:
+	if active_unit.is_empty():
+		return
+	var skills: Array = active_unit.get("skills", [])
+	if index >= skills.size() or not (skills[index] is Dictionary):
+		return
+	skill_tooltip.text = _skill_detail(skills[index])
+
+func _on_skill_unhovered() -> void:
+	skill_tooltip.text = "鼠标悬停技能按钮，可查看详细说明。"
 
 func _on_roster_selected(index: int) -> void:
 	hero_info.text = _hero_detail(heroes[index])
@@ -280,6 +298,7 @@ func _next_turn() -> void:
 		turn_queue = turn_queue.filter(func(u: Dictionary): return u["hp"] > 0)
 		turn_queue.sort_custom(func(a: Dictionary, b: Dictionary): return a["spd"] > b["spd"])
 	active_unit = turn_queue.pop_front()
+	_update_turn_order_display()
 	if active_unit["hp"] <= 0:
 		_next_turn()
 		return
@@ -290,6 +309,7 @@ func _next_turn() -> void:
 		_refresh_battle_lists()
 		_next_turn()
 		return
+	_highlight_active_unit()
 	if active_unit["is_player"]:
 		battle_hint.text = "轮到 %s，先点技能再点目标。" % active_unit["name"]
 		_refresh_skill_buttons()
@@ -422,11 +442,14 @@ func _cleanup_dead() -> void:
 func _check_battle_end() -> bool:
 	if allies.is_empty():
 		battle_active = false
+		active_unit.clear()
 		battle_log.append_text("\n[失败] 队伍被击败，可重新编队再挑战。")
 		_refresh_stage_mode()
+		_refresh_battle_lists()
 		return true
 	if enemies.is_empty():
 		battle_active = false
+		active_unit.clear()
 		var reward := 30 + tower_floor * 10
 		_apply_rewards(reward)
 		battle_log.append_text("\n[胜利] 通关第%d层，获得全队经验 %d。" % [tower_floor, reward])
@@ -437,6 +460,7 @@ func _check_battle_end() -> bool:
 			battle_log.append_text("\n[爬塔] 即将进入Boss层，允许重新编辑阵容，且角色状态已回满。")
 		_refresh_stage_mode()
 		_refresh_roster()
+		_refresh_battle_lists()
 		return true
 	return false
 
@@ -477,3 +501,57 @@ func _hero_detail(hero: Dictionary) -> String:
 		text += "- %s\n" % skill["name"]
 	text += "克制: %s 克制 %s" % [hero["talent"], TALENT_COUNTER[hero["talent"]]]
 	return text
+
+func _highlight_active_unit() -> void:
+	ally_list.deselect_all()
+	enemy_list.deselect_all()
+	if active_unit.is_empty() or not battle_active:
+		return
+	if bool(active_unit.get("is_player", false)):
+		for i in allies.size():
+			if allies[i]["id"] == active_unit["id"]:
+				ally_list.select(i)
+				break
+	else:
+		for i in enemies.size():
+			if enemies[i]["id"] == active_unit["id"]:
+				enemy_list.select(i)
+				break
+
+func _update_turn_order_display() -> void:
+	if not battle_active:
+		turn_order_label.text = "行动顺序: -"
+		return
+	var names: Array[String] = []
+	if not active_unit.is_empty() and active_unit["hp"] > 0:
+		names.append("当前:%s" % active_unit["name"])
+	for unit in turn_queue:
+		if unit["hp"] > 0:
+			names.append(unit["name"])
+		if names.size() >= 8:
+			break
+	turn_order_label.text = "行动顺序: %s" % (" -> ".join(names) if not names.is_empty() else "计算中...")
+
+func _skill_detail(skill: Dictionary) -> String:
+	var target_map := {"enemy": "敌方", "ally": "我方", "self": "自身"}
+	var kind_map := {"damage": "伤害", "heal": "治疗", "buff": "增益"}
+	var lines := PackedStringArray()
+	lines.append("[b]%s[/b]" % str(skill.get("name", "技能")))
+	lines.append("类型: %s" % str(kind_map.get(skill.get("kind", "damage"), "效果")))
+	lines.append("目标: %s" % str(target_map.get(skill.get("target", "enemy"), "目标")))
+	lines.append("基础强度: %d" % int(skill.get("power", 0)))
+	if skill.has("hits"):
+		lines.append("连击次数: %d" % int(skill["hits"]))
+	if skill.has("apply_status"):
+		lines.append("附加状态: %s" % str(skill["apply_status"]))
+	if skill.has("buff_attack"):
+		lines.append("效果: 提升攻击 %.0f%%" % (float(skill["buff_attack"]) * 100.0))
+	if skill.has("buff_defense"):
+		lines.append("效果: 提升防御 %.0f%%" % (float(skill["buff_defense"]) * 100.0))
+	if skill.has("debuff_attack"):
+		lines.append("效果: 降低目标攻击 %.0f%%" % (float(skill["debuff_attack"]) * 100.0))
+	if bool(skill.get("summon_bonus", false)):
+		lines.append("特性: 召唤追加伤害")
+	if bool(skill.get("cleanse", false)):
+		lines.append("特性: 清除目标异常状态")
+	return "\n".join(lines)

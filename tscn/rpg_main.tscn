@@ -98,6 +98,17 @@ size_flags_vertical = 3
 layout_mode = 2
 text = "战斗提示"
 
+[node name="TurnOrderLabel" type="Label" parent="Root/Margin/VBox/Body/BattlePanel"]
+layout_mode = 2
+text = "行动顺序: -"
+
+[node name="SkillTooltip" type="RichTextLabel" parent="Root/Margin/VBox/Body/BattlePanel"]
+custom_minimum_size = Vector2(300, 96)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = "鼠标悬停技能按钮，可查看详细说明。"
+
 [node name="Lists" type="HBoxContainer" parent="Root/Margin/VBox/Body/BattlePanel"]
 layout_mode = 2
 size_flags_vertical = 3

@@ -310,7 +310,7 @@ func _on_skill_pressed(index: int) -> void:
 	selected_skill = skills[index]
 	battle_hint.text = "已选择 %s，请点%s目标。" % [selected_skill["name"], "敌方" if selected_skill["target"] == "enemy" else "我方"]
 
-func _on_target_selected(target_type: String, index: int) -> void:
+func _on_target_selected(index: int, target_type: String) -> void:
 	if not battle_active or active_unit.is_empty() or not active_unit["is_player"]:
 		return
 	if selected_skill.is_empty():

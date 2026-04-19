@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tscn/simple_2d_game.gd" id="1"]
+
+[node name="Simple2DGame" type="Node2D"]
+script = ExtResource("1")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="MarginContainer" parent="CanvasLayer"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 420.0
+offset_bottom = 80.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/UI"]
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/UI/VBoxContainer"]
+text = "分数: 0"
+
+[node name="HintLabel" type="Label" parent="CanvasLayer/UI/VBoxContainer"]
+text = "方向键移动，吃金币躲敌人"

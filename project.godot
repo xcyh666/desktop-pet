@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-run/main_scene="res://tscn/rpg_main.tscn"
+run/main_scene="res://tscn/simple_2d_game.tscn"
 config/name="desktopPet"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"

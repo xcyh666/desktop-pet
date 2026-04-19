@@ -178,18 +178,10 @@ func _refresh_skill_buttons() -> void:
 			skill_buttons[i].text = "未配置技能"
 			skill_buttons[i].disabled = true
 			continue
-		if not (skills[i] is Dictionary):
-			skill_buttons[i].text = "技能数据错误"
-			skill_buttons[i].disabled = true
-			continue
-		var skill: Dictionary = skills[i]
-		if not skill.has("name") or not skill.has("target"):
-			skill_buttons[i].text = "技能数据错误"
-			skill_buttons[i].disabled = true
-			continue
+		var skill: Dictionary = skills[i] if skills[i] is Dictionary else {}
 		var ap_cost := int(skill.get("ap_cost", 0))
 		var cost_text := "回复+%dAP" % int(skill.get("ap_recover", 0)) if bool(skill.get("is_basic", false)) else "消耗%dAP" % ap_cost
-		skill_buttons[i].text = "%s\n%s" % [str(skill["name"]), cost_text]
+		skill_buttons[i].text = "%s\n%s" % [str(skill.get("name", "技能")), cost_text]
 		skill_buttons[i].disabled = not _can_use_skill(active_unit, skill)
 	battle_hint.text = "请选择技能，再点目标（敌方/我方）"
 
@@ -199,11 +191,7 @@ func _on_skill_hovered(index: int) -> void:
 	var skills: Array = active_unit.get("skills", [])
 	if index >= skills.size():
 		return
-	if not (skills[index] is Dictionary):
-		return
-	var skill: Dictionary = skills[index]
-	if not skill.has("name"):
-		return
+	var skill: Dictionary = skills[index] if skills[index] is Dictionary else {}
 	skill_tooltip.text = _skill_detail(skill)
 
 func _on_skill_unhovered() -> void:
@@ -354,13 +342,7 @@ func _on_skill_pressed(index: int) -> void:
 	var skills: Array = active_unit["skills"]
 	if index >= skills.size():
 		return
-	if not (skills[index] is Dictionary):
-		battle_hint.text = "技能数据错误，无法释放。"
-		return
-	var skill: Dictionary = skills[index]
-	if not skill.has("name") or not skill.has("target"):
-		battle_hint.text = "技能数据错误，无法释放。"
-		return
+	var skill: Dictionary = skills[index] if skills[index] is Dictionary else {}
 	if not _can_use_skill(active_unit, skill):
 		battle_hint.text = "行动点不足，无法释放该技能。"
 		return

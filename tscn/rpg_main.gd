@@ -519,7 +519,13 @@ func _hero_brief(hero: Dictionary) -> String:
 	return "%s | Lv%d | %s/%s" % [hero["name"], hero["level"], hero["profession"], hero["talent"]]
 
 func _battle_unit_text(unit: Dictionary) -> String:
-	return "%s  HP:%d/%d  AP:%d/%d  [%s]" % [unit["name"], unit["hp"], unit["max_hp"], int(unit.get("ap", 0)), int(unit.get("max_ap", 10)), unit["talent"]]
+	var unit_name := str(unit.get("name", "未知单位"))
+	var hp := int(unit.get("hp", 0))
+	var max_hp := int(unit.get("max_hp", 1))
+	var ap := int(unit.get("ap", 0))
+	var max_ap := int(unit.get("max_ap", 10))
+	var talent := str(unit.get("talent", "无"))
+	return "%s  HP:%d/%d  AP:%d/%d  [%s]" % [unit_name, hp, max_hp, ap, max_ap, talent]
 
 func _hero_detail(hero: Dictionary) -> String:
 	var text := "[b]%s[/b]\n职业: %s\n天赋: %s\n等级: %d\nHP: %d/%d  攻:%d 防:%d 速:%d\n技能:\n" % [hero["name"], hero["profession"], hero["talent"], hero["level"], hero["hp"], hero["max_hp"], hero["atk"], hero["def"], hero["spd"]]

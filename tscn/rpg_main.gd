@@ -341,7 +341,9 @@ func _on_skill_pressed(index: int) -> void:
 		battle_hint.text = "行动点不足，无法释放该技能。"
 		return
 	selected_skill = skills[index]
-	battle_hint.text = "已选择 %s（AP:%d/%d），请点%s目标。" % [selected_skill["name"], int(active_unit.get("ap", 0)), int(active_unit.get("max_ap", 10)), "敌方" if selected_skill["target"] == "enemy" else "我方"]
+	var selected_name := str(selected_skill.get("name", "技能"))
+	var selected_target := str(selected_skill.get("target", "enemy"))
+	battle_hint.text = "已选择 %s（AP:%d/%d），请点%s目标。" % [selected_name, int(active_unit.get("ap", 0)), int(active_unit.get("max_ap", 10)), "敌方" if selected_target == "enemy" else "我方"]
 
 func _on_target_selected(index: int, target_type: String) -> void:
 	if not battle_active or active_unit.is_empty() or not active_unit["is_player"]:
@@ -349,11 +351,12 @@ func _on_target_selected(index: int, target_type: String) -> void:
 	if selected_skill.is_empty():
 		battle_hint.text = "请先选择技能。"
 		return
-	if selected_skill["target"] != target_type and selected_skill["target"] != "self":
+	var target_mode := str(selected_skill.get("target", "enemy"))
+	if target_mode != target_type and target_mode != "self":
 		battle_hint.text = "该技能目标不匹配。"
 		return
 	var target: Dictionary
-	if selected_skill["target"] == "self":
+	if target_mode == "self":
 		target = active_unit
 	elif target_type == "enemy":
 		target = enemies[index]
@@ -395,7 +398,7 @@ func _enemy_act() -> void:
 
 func _execute_skill(caster: Dictionary, target: Dictionary, skill: Dictionary) -> bool:
 	if not _can_use_skill(caster, skill):
-		battle_log.append_text("\n%s 行动点不足，无法施放 %s" % [caster["name"], skill["name"]])
+		battle_log.append_text("\n%s 行动点不足，无法施放 %s" % [caster["name"], str(skill.get("name", "技能"))])
 		return false
 	var ap_cost := int(skill.get("ap_cost", 0))
 	if not bool(skill.get("is_basic", false)):
@@ -405,11 +408,11 @@ func _execute_skill(caster: Dictionary, target: Dictionary, skill: Dictionary) -
 		if skill["kind"] == "heal":
 			var heal_value := int(skill["power"] + caster["atk"] * 0.5)
 			target["hp"] = min(target["max_hp"], target["hp"] + heal_value)
-			battle_log.append_text("\n%s 对 %s 施放 %s，恢复 %d HP" % [caster["name"], target["name"], skill["name"], heal_value])
+			battle_log.append_text("\n%s 对 %s 施放 %s，恢复 %d HP" % [caster["name"], target["name"], str(skill.get("name", "技能")), heal_value])
 		else:
 			var damage := _calc_damage(caster, target, skill)
 			target["hp"] = max(0, target["hp"] - damage)
-			battle_log.append_text("\n%s 对 %s 施放 %s，造成 %d 伤害" % [caster["name"], target["name"], skill["name"], damage])
+			battle_log.append_text("\n%s 对 %s 施放 %s，造成 %d 伤害" % [caster["name"], target["name"], str(skill.get("name", "技能")), damage])
 	if String(skill.get("apply_status", "")) != "" and target["hp"] > 0:
 		var status_name: String = skill["apply_status"]
 		target["status"][status_name] = 2

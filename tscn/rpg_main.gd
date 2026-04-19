@@ -9,24 +9,24 @@ const GRID_SIZE := 9
 const EXP_PER_LEVEL := 100
 
 const PROFESSION_SKILLS := {
-	"牧师": [{"name": "治疗祷言", "power": 24, "target": "ally", "kind": "heal"}, {"name": "圣言冲击", "power": 18, "target": "enemy", "kind": "damage"}],
-	"刺客": [{"name": "背刺", "power": 28, "target": "enemy", "kind": "damage"}, {"name": "毒刃连击", "power": 20, "target": "enemy", "kind": "damage", "apply_status": "中毒"}],
-	"战士": [{"name": "破甲斩", "power": 24, "target": "enemy", "kind": "damage"}, {"name": "战吼", "power": 0, "target": "self", "kind": "buff", "buff_attack": 0.25}],
-	"肉盾": [{"name": "盾击", "power": 18, "target": "enemy", "kind": "damage", "apply_status": "冰冻"}, {"name": "守护姿态", "power": 0, "target": "self", "kind": "buff", "buff_defense": 0.3}],
-	"射手": [{"name": "穿云箭", "power": 23, "target": "enemy", "kind": "damage"}, {"name": "连珠射击", "power": 18, "target": "enemy", "kind": "damage", "hits": 2}],
-	"法师": [{"name": "奥术飞弹", "power": 22, "target": "enemy", "kind": "damage"}, {"name": "陨火术", "power": 25, "target": "enemy", "kind": "damage", "apply_status": "灼烧"}]
+	"牧师": [{"name": "治疗祷言", "power": 24, "target": "ally", "kind": "heal", "ap_cost": 4}, {"name": "圣言冲击", "power": 18, "target": "enemy", "kind": "damage", "ap_cost": 3}],
+	"刺客": [{"name": "背刺", "power": 28, "target": "enemy", "kind": "damage", "ap_cost": 5}, {"name": "毒刃连击", "power": 20, "target": "enemy", "kind": "damage", "apply_status": "中毒", "ap_cost": 4}],
+	"战士": [{"name": "破甲斩", "power": 24, "target": "enemy", "kind": "damage", "ap_cost": 4}, {"name": "战吼", "power": 0, "target": "self", "kind": "buff", "buff_attack": 0.25, "ap_cost": 3}],
+	"肉盾": [{"name": "盾击", "power": 18, "target": "enemy", "kind": "damage", "apply_status": "冰冻", "ap_cost": 4}, {"name": "守护姿态", "power": 0, "target": "self", "kind": "buff", "buff_defense": 0.3, "ap_cost": 3}],
+	"射手": [{"name": "穿云箭", "power": 23, "target": "enemy", "kind": "damage", "ap_cost": 4}, {"name": "连珠射击", "power": 18, "target": "enemy", "kind": "damage", "hits": 2, "ap_cost": 5}],
+	"法师": [{"name": "奥术飞弹", "power": 22, "target": "enemy", "kind": "damage", "ap_cost": 4}, {"name": "陨火术", "power": 25, "target": "enemy", "kind": "damage", "apply_status": "灼烧", "ap_cost": 5}]
 }
 
 const TALENT_SKILLS := {
-	"灼烧": {"name": "灼炎印记", "power": 20, "target": "enemy", "kind": "damage", "apply_status": "灼烧"},
-	"中毒": {"name": "毒雾侵蚀", "power": 18, "target": "enemy", "kind": "damage", "apply_status": "中毒"},
-	"冰冻": {"name": "寒霜禁锢", "power": 16, "target": "enemy", "kind": "damage", "apply_status": "冰冻"},
-	"召唤": {"name": "召唤协战", "power": 20, "target": "enemy", "kind": "damage", "summon_bonus": true},
-	"月蚀": {"name": "月蚀冲击", "power": 23, "target": "enemy", "kind": "damage", "debuff_attack": 0.2},
-	"圣光": {"name": "圣光庇护", "power": 20, "target": "ally", "kind": "heal", "cleanse": true}
+	"灼烧": {"name": "灼炎印记", "ap_cost": 4, "power": 20, "target": "enemy", "kind": "damage", "apply_status": "灼烧"},
+	"中毒": {"name": "毒雾侵蚀", "ap_cost": 4, "power": 18, "target": "enemy", "kind": "damage", "apply_status": "中毒"},
+	"冰冻": {"name": "寒霜禁锢", "ap_cost": 4, "power": 16, "target": "enemy", "kind": "damage", "apply_status": "冰冻"},
+	"召唤": {"name": "召唤协战", "ap_cost": 5, "power": 20, "target": "enemy", "kind": "damage", "summon_bonus": true},
+	"月蚀": {"name": "月蚀冲击", "ap_cost": 5, "power": 23, "target": "enemy", "kind": "damage", "debuff_attack": 0.2},
+	"圣光": {"name": "圣光庇护", "ap_cost": 4, "power": 20, "target": "ally", "kind": "heal", "cleanse": true}
 }
 
-const BASIC_ATTACK := {"name": "普通攻击", "power": 15, "target": "enemy", "kind": "damage"}
+const BASIC_ATTACK := {"name": "普通攻击", "power": 15, "target": "enemy", "kind": "damage", "is_basic": true, "ap_recover": 3}
 
 @onready var stage_label: Label = $Root/Margin/VBox/TopBar/StageLabel
 @onready var mode_label: Label = $Root/Margin/VBox/TopBar/ModeLabel
@@ -97,7 +97,8 @@ func _create_hero(id: int, profession: String, talent: String) -> Dictionary:
 		"status": {},
 		"buff_attack": 0.0,
 		"buff_defense": 0.0,
-
+		"max_ap": 10,
+		"ap": 10,
 		"skills": _build_skills(profession, talent)
 	}
 
@@ -172,8 +173,10 @@ func _refresh_skill_buttons() -> void:
 		var skill_data = skills[i]
 		if skill_data is Dictionary:
 			var skill: Dictionary = skill_data
-			skill_buttons[i].text = str(skill.get("name", "技能"))
-			skill_buttons[i].disabled = false
+			var ap_cost := int(skill.get("ap_cost", 0))
+			var cost_text := "回复+%dAP" % int(skill.get("ap_recover", 0)) if bool(skill.get("is_basic", false)) else "消耗%dAP" % ap_cost
+			skill_buttons[i].text = "%s\n%s" % [str(skill.get("name", "技能")), cost_text]
+			skill_buttons[i].disabled = not _can_use_skill(active_unit, skill)
 	battle_hint.text = "请选择技能，再点目标（敌方/我方）"
 
 func _on_skill_hovered(index: int) -> void:
@@ -285,6 +288,8 @@ func _clone_for_battle(source: Dictionary, is_player: bool) -> Dictionary:
 	copied["status"] = {}
 	copied["buff_attack"] = 0.0
 	copied["buff_defense"] = 0.0
+	copied["max_ap"] = 10
+	copied["ap"] = 10
 	return copied
 
 func _next_turn() -> void:
@@ -332,9 +337,11 @@ func _on_skill_pressed(index: int) -> void:
 		return
 	if not (skills[index] is Dictionary):
 		return
+	if not _can_use_skill(active_unit, skills[index]):
+		battle_hint.text = "行动点不足，无法释放该技能。"
+		return
 	selected_skill = skills[index]
-	var target_kind := str(selected_skill.get("target", "enemy"))
-	battle_hint.text = "已选择 %s，请点%s目标。" % [str(selected_skill.get("name", "技能")), "敌方" if target_kind == "enemy" else "我方"]
+	battle_hint.text = "已选择 %s（AP:%d/%d），请点%s目标。" % [selected_skill["name"], int(active_unit.get("ap", 0)), int(active_unit.get("max_ap", 10)), "敌方" if selected_skill["target"] == "enemy" else "我方"]
 
 func _on_target_selected(index: int, target_type: String) -> void:
 	if not battle_active or active_unit.is_empty() or not active_unit["is_player"]:
@@ -342,12 +349,11 @@ func _on_target_selected(index: int, target_type: String) -> void:
 	if selected_skill.is_empty():
 		battle_hint.text = "请先选择技能。"
 		return
-	var selected_target := str(selected_skill.get("target", "enemy"))
-	if selected_target != target_type and selected_target != "self":
+	if selected_skill["target"] != target_type and selected_skill["target"] != "self":
 		battle_hint.text = "该技能目标不匹配。"
 		return
 	var target: Dictionary
-	if selected_target == "self":
+	if selected_skill["target"] == "self":
 		target = active_unit
 	elif target_type == "enemy":
 		target = enemies[index]
@@ -356,7 +362,10 @@ func _on_target_selected(index: int, target_type: String) -> void:
 	if target["hp"] <= 0:
 		battle_hint.text = "目标已倒下。"
 		return
-	_execute_skill(active_unit, target, selected_skill)
+	var cast_ok := _execute_skill(active_unit, target, selected_skill)
+	if not cast_ok:
+		battle_hint.text = "行动点不足，换个技能。"
+		return
 	selected_skill.clear()
 	_refresh_battle_lists()
 	_refresh_skill_buttons()
@@ -367,9 +376,11 @@ func _on_target_selected(index: int, target_type: String) -> void:
 func _enemy_act() -> void:
 	var skill: Dictionary = active_unit["skills"][0]
 	for candidate in active_unit["skills"]:
-		if candidate["kind"] == "damage":
+		if candidate["kind"] == "damage" and _can_use_skill(active_unit, candidate):
 			skill = candidate
 			break
+	if not _can_use_skill(active_unit, skill):
+		skill = active_unit["skills"][0]
 	var targets: Array = allies if skill["target"] == "enemy" else enemies
 	targets = targets.filter(func(u: Dictionary): return u["hp"] > 0)
 	if targets.is_empty():
@@ -382,7 +393,13 @@ func _enemy_act() -> void:
 		return
 	_next_turn()
 
-func _execute_skill(caster: Dictionary, target: Dictionary, skill: Dictionary) -> void:
+func _execute_skill(caster: Dictionary, target: Dictionary, skill: Dictionary) -> bool:
+	if not _can_use_skill(caster, skill):
+		battle_log.append_text("\n%s 行动点不足，无法施放 %s" % [caster["name"], skill["name"]])
+		return false
+	var ap_cost := int(skill.get("ap_cost", 0))
+	if not bool(skill.get("is_basic", false)):
+		caster["ap"] = max(0, int(caster.get("ap", 0)) - ap_cost)
 	var hits := int(skill.get("hits", 1))
 	for _i in hits:
 		if skill["kind"] == "heal":
@@ -409,6 +426,11 @@ func _execute_skill(caster: Dictionary, target: Dictionary, skill: Dictionary) -
 		battle_log.append_text("\n召唤物追击 %s，造成 %d 额外伤害" % [target["name"], summon_hit])
 	if bool(skill.get("cleanse", false)):
 		target["status"].clear()
+	if bool(skill.get("is_basic", false)):
+		var recover := int(skill.get("ap_recover", 3))
+		caster["ap"] = min(int(caster.get("max_ap", 10)), int(caster.get("ap", 0)) + recover)
+		battle_log.append_text("\n%s 使用普通攻击，恢复 %d 行动点。" % [caster["name"], recover])
+	return true
 
 func _calc_damage(caster: Dictionary, target: Dictionary, skill: Dictionary) -> int:
 	var attack: float = float(caster["atk"]) * (1.0 + float(caster["buff_attack"]))
@@ -488,6 +510,7 @@ func _apply_rewards(exp_gain: int) -> void:
 func _restore_team_status() -> void:
 	for hero in heroes:
 		hero["hp"] = hero["max_hp"]
+		hero["ap"] = hero["max_ap"]
 		hero["status"] = {}
 		hero["buff_attack"] = 0.0
 		hero["buff_defense"] = 0.0
@@ -499,8 +522,10 @@ func _battle_unit_text(unit: Dictionary) -> String:
 	var unit_name := str(unit.get("name", "未知单位"))
 	var hp := int(unit.get("hp", 0))
 	var max_hp := int(unit.get("max_hp", 1))
+	var ap := int(unit.get("ap", 0))
+	var max_ap := int(unit.get("max_ap", 10))
 	var talent := str(unit.get("talent", "无"))
-	return "%s  HP:%d/%d  [%s]" % [unit_name, hp, max_hp, talent]
+	return "%s  HP:%d/%d  AP:%d/%d  [%s]" % [unit_name, hp, max_hp, ap, max_ap, talent]
 
 func _hero_detail(hero: Dictionary) -> String:
 	var text := "[b]%s[/b]\n职业: %s\n天赋: %s\n等级: %d\nHP: %d/%d  攻:%d 防:%d 速:%d\n技能:\n" % [hero["name"], hero["profession"], hero["talent"], hero["level"], hero["hp"], hero["max_hp"], hero["atk"], hero["def"], hero["spd"]]
@@ -547,6 +572,10 @@ func _skill_detail(skill: Dictionary) -> String:
 	lines.append("类型: %s" % str(kind_map.get(skill.get("kind", "damage"), "效果")))
 	lines.append("目标: %s" % str(target_map.get(skill.get("target", "enemy"), "目标")))
 	lines.append("基础强度: %d" % int(skill.get("power", 0)))
+	if bool(skill.get("is_basic", false)):
+		lines.append("行动点: 释放后恢复 %d" % int(skill.get("ap_recover", 3)))
+	else:
+		lines.append("行动点消耗: %d" % int(skill.get("ap_cost", 0)))
 	if skill.has("hits"):
 		lines.append("连击次数: %d" % int(skill["hits"]))
 	if skill.has("apply_status"):
@@ -562,3 +591,8 @@ func _skill_detail(skill: Dictionary) -> String:
 	if bool(skill.get("cleanse", false)):
 		lines.append("特性: 清除目标异常状态")
 	return "\n".join(lines)
+
+func _can_use_skill(caster: Dictionary, skill: Dictionary) -> bool:
+	if bool(skill.get("is_basic", false)):
+		return true
+	return int(caster.get("ap", 0)) >= int(skill.get("ap_cost", 0))

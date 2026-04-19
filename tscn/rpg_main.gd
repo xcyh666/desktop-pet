@@ -163,7 +163,6 @@ func _refresh_battle_lists() -> void:
 func _refresh_skill_buttons() -> void:
 	for btn in skill_buttons:
 		btn.disabled = true
-		btn.text = "技能"
 	if active_unit.is_empty() or not bool(active_unit.get("is_player", false)):
 		battle_hint.text = "等待玩家回合..."
 		skill_tooltip.text = "鼠标悬停技能按钮，可查看详细说明。"

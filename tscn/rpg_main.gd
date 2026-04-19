@@ -103,7 +103,12 @@ func _create_hero(id: int, profession: String, talent: String) -> Dictionary:
 	}
 
 func _build_skills(profession: String, talent: String) -> Array:
-	return [BASIC_ATTACK.duplicate(true), PROFESSION_SKILLS[profession][0].duplicate(true), PROFESSION_SKILLS[profession][1].duplicate(true), TALENT_SKILLS[talent].duplicate(true)]
+	return [
+		_normalize_skill(BASIC_ATTACK.duplicate(true), "普通攻击"),
+		_normalize_skill(PROFESSION_SKILLS[profession][0].duplicate(true), "%s技能A" % profession),
+		_normalize_skill(PROFESSION_SKILLS[profession][1].duplicate(true), "%s技能B" % profession),
+		_normalize_skill(TALENT_SKILLS[talent].duplicate(true), "%s天赋技能" % talent)
+	]
 
 func _init_formation_grid() -> void:
 	formation_slots.resize(GRID_SIZE)
@@ -168,23 +173,28 @@ func _refresh_skill_buttons() -> void:
 		skill_tooltip.text = "鼠标悬停技能按钮，可查看详细说明。"
 		return
 	var skills: Array = active_unit["skills"]
-	for i in min(4, skills.size()):
-		var skill_data = skills[i]
-		if skill_data is Dictionary:
-			var skill: Dictionary = skill_data
-			var ap_cost := int(skill.get("ap_cost", 0))
-			var cost_text := "回复+%dAP" % int(skill.get("ap_recover", 0)) if bool(skill.get("is_basic", false)) else "消耗%dAP" % ap_cost
-			skill_buttons[i].text = "%s\n%s" % [str(skill.get("name", "技能")), cost_text]
-			skill_buttons[i].disabled = not _can_use_skill(active_unit, skill)
+	for i in skill_buttons.size():
+		if i >= skills.size():
+			skill_buttons[i].text = "未配置技能"
+			skill_buttons[i].disabled = true
+			continue
+		var skill := _normalize_skill(skills[i], "技能%d" % (i + 1))
+		skills[i] = skill
+		var ap_cost := int(skill.get("ap_cost", 0))
+		var cost_text := "回复+%dAP" % int(skill.get("ap_recover", 0)) if bool(skill.get("is_basic", false)) else "消耗%dAP" % ap_cost
+		skill_buttons[i].text = "%s\n%s" % [str(skill.get("name", "未命名技能")), cost_text]
+		skill_buttons[i].disabled = not _can_use_skill(active_unit, skill)
 	battle_hint.text = "请选择技能，再点目标（敌方/我方）"
 
 func _on_skill_hovered(index: int) -> void:
 	if active_unit.is_empty():
 		return
 	var skills: Array = active_unit.get("skills", [])
-	if index >= skills.size() or not (skills[index] is Dictionary):
+	if index >= skills.size():
 		return
-	skill_tooltip.text = _skill_detail(skills[index])
+	var skill := _normalize_skill(skills[index], "技能%d" % (index + 1))
+	skills[index] = skill
+	skill_tooltip.text = _skill_detail(skill)
 
 func _on_skill_unhovered() -> void:
 	skill_tooltip.text = "鼠标悬停技能按钮，可查看详细说明。"
@@ -334,12 +344,12 @@ func _on_skill_pressed(index: int) -> void:
 	var skills: Array = active_unit["skills"]
 	if index >= skills.size():
 		return
-	if not (skills[index] is Dictionary):
-		return
-	if not _can_use_skill(active_unit, skills[index]):
+	var skill := _normalize_skill(skills[index], "技能%d" % (index + 1))
+	skills[index] = skill
+	if not _can_use_skill(active_unit, skill):
 		battle_hint.text = "行动点不足，无法释放该技能。"
 		return
-	selected_skill = skills[index]
+	selected_skill = skill
 	var selected_name := str(selected_skill.get("name", "技能"))
 	var selected_target := str(selected_skill.get("target", "enemy"))
 	battle_hint.text = "已选择 %s（AP:%d/%d），请点%s目标。" % [selected_name, int(active_unit.get("ap", 0)), int(active_unit.get("max_ap", 10)), "敌方" if selected_target == "enemy" else "我方"]
@@ -593,6 +603,18 @@ func _skill_detail(skill: Dictionary) -> String:
 	if bool(skill.get("cleanse", false)):
 		lines.append("特性: 清除目标异常状态")
 	return "\n".join(lines)
+
+func _normalize_skill(skill_data: Variant, fallback_name: String) -> Dictionary:
+	var skill: Dictionary = {}
+	if skill_data is Dictionary:
+		skill = (skill_data as Dictionary).duplicate(true)
+	skill["name"] = str(skill.get("name", fallback_name))
+	if skill["name"] == "":
+		skill["name"] = fallback_name
+	skill["target"] = str(skill.get("target", "enemy"))
+	skill["kind"] = str(skill.get("kind", "damage"))
+	skill["power"] = int(skill.get("power", 0))
+	return skill
 
 func _can_use_skill(caster: Dictionary, skill: Dictionary) -> bool:
 	if bool(skill.get("is_basic", false)):

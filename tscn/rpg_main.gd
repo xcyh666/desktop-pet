@@ -178,7 +178,7 @@ func _refresh_skill_buttons() -> void:
 			skill_buttons[i].text = "未配置技能"
 			skill_buttons[i].disabled = true
 			continue
-		var skill := _normalize_skill(skills[i], "技能%d" % (i + 1))
+		var skill := _normalize_skill(skills[i], _fallback_skill_name(active_unit, i))
 		skills[i] = skill
 		var ap_cost := int(skill.get("ap_cost", 0))
 		var cost_text := "回复+%dAP" % int(skill.get("ap_recover", 0)) if bool(skill.get("is_basic", false)) else "消耗%dAP" % ap_cost
@@ -192,7 +192,7 @@ func _on_skill_hovered(index: int) -> void:
 	var skills: Array = active_unit.get("skills", [])
 	if index >= skills.size():
 		return
-	var skill := _normalize_skill(skills[index], "技能%d" % (index + 1))
+	var skill := _normalize_skill(skills[index], _fallback_skill_name(active_unit, index))
 	skills[index] = skill
 	skill_tooltip.text = _skill_detail(skill)
 
@@ -344,7 +344,7 @@ func _on_skill_pressed(index: int) -> void:
 	var skills: Array = active_unit["skills"]
 	if index >= skills.size():
 		return
-	var skill := _normalize_skill(skills[index], "技能%d" % (index + 1))
+	var skill := _normalize_skill(skills[index], _fallback_skill_name(active_unit, index))
 	skills[index] = skill
 	if not _can_use_skill(active_unit, skill):
 		battle_hint.text = "行动点不足，无法释放该技能。"
@@ -615,6 +615,19 @@ func _normalize_skill(skill_data: Variant, fallback_name: String) -> Dictionary:
 	skill["kind"] = str(skill.get("kind", "damage"))
 	skill["power"] = int(skill.get("power", 0))
 	return skill
+
+func _fallback_skill_name(unit: Dictionary, skill_index: int) -> String:
+	if skill_index == 0:
+		return "普通攻击"
+	var profession := str(unit.get("profession", ""))
+	var talent := str(unit.get("talent", ""))
+	if skill_index == 1 and PROFESSION_SKILLS.has(profession):
+		return str(PROFESSION_SKILLS[profession][0].get("name", "%s技能A" % profession))
+	if skill_index == 2 and PROFESSION_SKILLS.has(profession):
+		return str(PROFESSION_SKILLS[profession][1].get("name", "%s技能B" % profession))
+	if skill_index == 3 and TALENT_SKILLS.has(talent):
+		return str(TALENT_SKILLS[talent].get("name", "%s天赋技能" % talent))
+	return "技能%d" % (skill_index + 1)
 
 func _can_use_skill(caster: Dictionary, skill: Dictionary) -> bool:
 	if bool(skill.get("is_basic", false)):
